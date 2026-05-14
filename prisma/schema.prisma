@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String   @id @default(uuid())
+  username   String   @unique
+  password   String
+  role       Role     @default(MEMBER)
+  tenant_id  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  alias      String?
+
+  @@index([tenant_id])
+  @@map("users")
+}
+
+model Wallet {
+  id           String        @id @default(uuid())
+  type         WalletType
+  name         String
+  balance      Decimal       @db.Decimal(15, 2)
+  tenant_id    String
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  transactions Transaction[]
+
+  @@unique([name, tenant_id])
+  @@index([tenant_id])
+  @@map("wallets")
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  name         String
+  tenant_id    String
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  svg_code     String
+  type         CategoryType
+  transactions Transaction[]
+
+  @@unique([name, type, tenant_id])
+  @@index([tenant_id])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  amount      Float
+  type        TransactionType
+  description String?
+  date        DateTime
+  tenant_id   String
+  category_id String
+  created_at  DateTime        @default(now())
+  updated_at  DateTime        @updatedAt
+  wallet_id   String
+  goal_id     String?
+  category    Category      @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  wallet      Wallet        @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+  goal        FinancialGoal? @relation(fields: [goal_id], references: [id], onDelete: SetNull)
+
+  @@index([tenant_id])
+  @@index([wallet_id])
+  @@index([category_id])
+  @@index([goal_id])
+  @@index([tenant_id, date])
+  @@map("transactions")
+}
+
+model FinancialGoal {
+  id             String        @id @default(uuid())
+  title          String
+  target_amount  Float
+  current_amount Float         @default(0)
+  category       String        @default("general")
+  icon           String        @default("🎯")
+  deadline       DateTime
+  status         GoalStatus    @default(ACTIVE)
+  tenant_id      String
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  transactions   Transaction[]
+
+  @@index([tenant_id])
+  @@index([tenant_id, status])
+  @@map("financial_goals")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum WalletType {
+  CASH
+  BANK
+  EWALLET
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}

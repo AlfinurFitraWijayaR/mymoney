@@ -23,11 +23,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const month = searchParams.month ?? getCurrentMonth();
   const session = await getSession();
 
-  const [monthlyStats, overallStats, recentTransactions, userData, wallets] =
+  // Optimized: fetch only 3 recent transactions instead of all, use parallel queries
+  const [monthlyStats, overallStats, recent, userData, wallets] =
     await Promise.all([
       getDashboardStats(month),
       getDashboardStats(),
-      getTransactions(month),
+      getTransactions(month, 3),
       session
         ? prisma.user.findUnique({
             where: { id: session.userId },
@@ -36,8 +37,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         : null,
       getWallets(),
     ]);
-
-  const recent = recentTransactions.slice(0, 3);
 
   return (
     <div className="-m-4 md:-m-8">

@@ -50,17 +50,47 @@ export function TransactionForm({
     if (readOnly) return;
     const value = e.target.value.replace(/\./g, "");
     if (/^\d*$/.test(value)) {
-      setForm({ ...form, amount: value });
+      let targetWalletId = form.walletId;
+
+      // Auto wallet switcher for EXPENSE
+      if (form.type === "EXPENSE") {
+        const numAmount = Number(value);
+        const selectedWal = wallets.find((w) => w.id === form.walletId);
+
+        if (selectedWal && numAmount > selectedWal.balance) {
+          const betterWal = wallets.find((w) => w.balance >= numAmount);
+          if (betterWal) {
+            targetWalletId = betterWal.id;
+          }
+        }
+      }
+
+      setForm({ ...form, amount: value, walletId: targetWalletId });
     }
   };
 
   const handleTypeChange = (newType: "INCOME" | "EXPENSE") => {
     if (readOnly) return;
     const firstCat = categories.find((c) => c.type === newType);
+
+    let targetWalletId = form.walletId;
+    // Auto wallet switcher when switching to EXPENSE
+    if (newType === "EXPENSE") {
+      const numAmount = Number(form.amount);
+      const selectedWal = wallets.find((w) => w.id === form.walletId);
+      if (selectedWal && numAmount > selectedWal.balance) {
+        const betterWal = wallets.find((w) => w.balance >= numAmount);
+        if (betterWal) {
+          targetWalletId = betterWal.id;
+        }
+      }
+    }
+
     setForm({
       ...form,
       type: newType,
       categoryId: firstCat ? firstCat.id : "",
+      walletId: targetWalletId,
     });
   };
 
@@ -162,7 +192,7 @@ export function TransactionForm({
                   }`}
                 >
                   <Image
-                    src={`/${wal.name.toLowerCase()}.svg`}
+                    src={`/wallet/${wal.name.toLowerCase()}.svg`}
                     width={16}
                     height={16}
                     alt={wal.name}
@@ -213,9 +243,11 @@ export function TransactionForm({
                       : "border-slate-200 bg-white text-zinc-600 hover:border-slate-300"
                 }`}
               >
-                <span
-                  className="w-5 h-5 flex items-center justify-center"
-                  dangerouslySetInnerHTML={{ __html: cat.svg_code || "" }}
+                <Image
+                  src={`/categories/${cat.name.toLowerCase()}.svg`}
+                  alt={cat.name}
+                  width={20}
+                  height={20}
                 />
                 <span className="text-xs font-medium text-center line-clamp-1">
                   {cat.name}

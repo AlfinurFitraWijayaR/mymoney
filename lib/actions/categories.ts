@@ -4,36 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { CategorySchema } from "@/lib/validations";
-import { Category } from "@prisma/client";
 
 export async function getCategories() {
-  return prisma.$queryRaw<Category[]>`
-    SELECT *
-    FROM "categories"
-    ORDER BY 
-      "type" ASC,
-      CASE 
-        -- INCOME
-        WHEN "type" = 'INCOME' AND "name" = 'Uang saku' THEN 1
-        WHEN "type" = 'INCOME' AND "name" = 'Gaji' THEN 2
-        WHEN "type" = 'INCOME' AND "name" = 'Bonus' THEN 3
-
-        -- EXPENSE
-        WHEN "type" = 'EXPENSE' AND "name" = 'Jajan' THEN 1
-        WHEN "type" = 'EXPENSE' AND "name" = 'Belanja' THEN 2
-        WHEN "type" = 'EXPENSE' AND "name" = 'Transport' THEN 3
-        WHEN "type" = 'EXPENSE' AND "name" = 'Tagihan' THEN 4
-        WHEN "type" = 'EXPENSE' AND "name" = 'Cicilan' THEN 5
-        WHEN "type" = 'EXPENSE' AND "name" = 'Hiburan' THEN 6
-        WHEN "type" = 'EXPENSE' AND "name" = 'Sosial' THEN 7
-        WHEN "type" = 'EXPENSE' AND "name" = 'Kesehatan' THEN 8
-
-        -- GLOBAL LAST
-        WHEN "name" = 'Lainnya' THEN 999
-
-        ELSE 50
-      END;
-  `;
+  // Use Prisma findMany with tenant_id filter instead of raw SQL that fetches ALL tenants
+  const categories = await prisma.category.findMany({
+    orderBy: [{ type: "asc" }, { name: "asc" }],
+  });
+  return categories;
 }
 
 export async function createCategory(formData: FormData) {

@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useTransition, useCallback } from "react";
 import {
   createTransaction,
   updateTransaction,
@@ -73,6 +73,15 @@ export default function TransactionsClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  // Optimistic state for immediate UI feedback
+  const [optimisticTxs, setOptimisticTxs] = useState(transactions);
+
+  // Sync with server data when it changes
+  useEffect(() => {
+    setOptimisticTxs(transactions);
+  }, [transactions]);
 
   useEffect(() => {
     setMounted(true);
@@ -106,17 +115,22 @@ export default function TransactionsClient({
     setLoading(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const result = await createTransaction(fd);
-    setLoading(false);
-    if (result?.error) {
-      setError(
-        typeof result.error === "string"
-          ? result.error
-          : JSON.stringify(result.error),
-      );
-      return;
-    }
+
+    // Close modal immediately for perceived speed
     setCreateOpen(false);
+
+    startTransition(async () => {
+      const result = await createTransaction(fd);
+      setLoading(false);
+      if (result?.error) {
+        setError(
+          typeof result.error === "string"
+            ? result.error
+            : JSON.stringify(result.error),
+        );
+        setCreateOpen(true); // Re-open on error
+      }
+    });
   }
 
   async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
@@ -126,29 +140,46 @@ export default function TransactionsClient({
     setError(null);
     const fd = new FormData(e.currentTarget);
     fd.set("id", editTarget.id);
-    const result = await updateTransaction(fd);
-    setLoading(false);
-    if (result?.error) {
-      setError(
-        typeof result.error === "string"
-          ? result.error
-          : JSON.stringify(result.error),
-      );
-      return;
-    }
+
+    // Close modal immediately
+    const target = editTarget;
     setEditTarget(null);
+
+    startTransition(async () => {
+      const result = await updateTransaction(fd);
+      setLoading(false);
+      if (result?.error) {
+        setError(
+          typeof result.error === "string"
+            ? result.error
+            : JSON.stringify(result.error),
+        );
+        setEditTarget(target); // Re-open on error
+      }
+    });
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     setLoading(true);
-    await deleteTransaction(deleteTarget);
-    setLoading(false);
+
+    // Optimistic removal from list
+    const deletedId = deleteTarget;
+    setOptimisticTxs((prev) => prev.filter((tx) => tx.id !== deletedId));
     setDeleteTarget(null);
     setEditTarget(null);
+
+    startTransition(async () => {
+      const result = await deleteTransaction(deletedId);
+      setLoading(false);
+      if (result?.error) {
+        // Revert optimistic delete on error
+        setOptimisticTxs(transactions);
+      }
+    });
   }
 
-  const groupedTransactions = transactions.reduce(
+  const groupedTransactions = optimisticTxs.reduce(
     (acc, tx) => {
       const dateObj = new Date(tx.date);
       const dateStr = new Intl.DateTimeFormat("id-ID", {
@@ -210,8 +241,15 @@ export default function TransactionsClient({
         </div>
       </div>
 
+      {/* Pending indicator */}
+      {isPending && (
+        <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-blue-500/20">
+          <div className="h-full bg-blue-500 animate-pulse w-full" />
+        </div>
+      )}
+
       {/* Table Main */}
-      {transactions.length === 0 ? (
+      {optimisticTxs.length === 0 ? (
         <div className="card p-12 sm:p-16 text-center mt-6">
           <div className="flex items-center justify-center mx-auto mb-2">
             <Image src="/yah.svg" alt="Not Found" width={60} height={60} />

@@ -59,20 +59,34 @@ export async function getStatistics(
     date: { gte: dateStart, lte: dateEnd },
   };
 
-  // ── Summary: aggregate totals ──────────────────────────────
-  const [incomeAgg, expenseAgg] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: { ...where, type: "INCOME" },
+  // ── Parallel fetch: aggregates + transactions in ONE round-trip ──
+  const [groupedByType, transactions] = await Promise.all([
+    // Single groupBy instead of two aggregates
+    prisma.transaction.groupBy({
+      by: ["type"],
+      where,
       _sum: { amount: true },
     }),
-    prisma.transaction.aggregate({
-      where: { ...where, type: "EXPENSE" },
-      _sum: { amount: true },
+    // Single findMany with category join for all chart data
+    prisma.transaction.findMany({
+      where,
+      select: {
+        amount: true,
+        type: true,
+        date: true,
+        category: { select: { name: true } },
+      },
+      orderBy: { date: "asc" },
     }),
   ]);
 
-  const totalIncome = Number(incomeAgg._sum.amount ?? 0);
-  const totalExpense = Number(expenseAgg._sum.amount ?? 0);
+  // ── Summary ────────────────────────────────────────────────
+  const totalIncome = Number(
+    groupedByType.find((g) => g.type === "INCOME")?._sum.amount ?? 0
+  );
+  const totalExpense = Number(
+    groupedByType.find((g) => g.type === "EXPENSE")?._sum.amount ?? 0
+  );
 
   const summary: StatsSummary = {
     totalIncome,
@@ -80,71 +94,65 @@ export async function getStatistics(
     netSavings: totalIncome - totalExpense,
   };
 
-  // ── Cash Flow: group by month ──────────────────────────────
-  const transactions = await prisma.transaction.findMany({
-    where,
-    select: { amount: true, type: true, date: true },
-    orderBy: { date: "asc" },
-  });
-
+  // ── Cash Flow, Category Spending, and Cumulative Balance ──
+  // Process all three from the single transactions array (no extra DB queries)
   const cashFlowMap = new Map<string, { income: number; expense: number }>();
+  const catMap = new Map<string, number>();
+  let runningBalance = 0;
+  const balanceMap = new Map<string, number>();
 
   if (month) {
-    // Group by day for single-month view
+    // Pre-populate days for month view
     const daysInMonth = new Date(targetYear, month, 0).getDate();
     for (let d = 1; d <= daysInMonth; d++) {
-      const key = String(d).padStart(2, "0");
-      cashFlowMap.set(key, { income: 0, expense: 0 });
-    }
-    for (const tx of transactions) {
-      const day = String(new Date(tx.date).getDate()).padStart(2, "0");
-      const entry = cashFlowMap.get(day)!;
-      if (tx.type === "INCOME") entry.income += tx.amount;
-      else entry.expense += tx.amount;
+      cashFlowMap.set(String(d).padStart(2, "0"), { income: 0, expense: 0 });
     }
   } else {
-    // Group by month for yearly view
+    // Pre-populate months for yearly view
     const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "Mei",
-      "Jun",
-      "Jul",
-      "Agu",
-      "Sep",
-      "Okt",
-      "Nov",
-      "Des",
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
     ];
     for (let m = 0; m < 12; m++) {
       cashFlowMap.set(monthNames[m], { income: 0, expense: 0 });
     }
-    for (const tx of transactions) {
-      const m = new Date(tx.date).getMonth();
-      const key = monthNames[m];
-      const entry = cashFlowMap.get(key)!;
-      if (tx.type === "INCOME") entry.income += tx.amount;
-      else entry.expense += tx.amount;
+  }
+
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+    "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+  ];
+
+  for (const tx of transactions) {
+    const txDate = new Date(tx.date);
+    const amt = tx.amount;
+
+    // Cash flow
+    const cfKey = month
+      ? String(txDate.getDate()).padStart(2, "0")
+      : monthNames[txDate.getMonth()];
+    const cfEntry = cashFlowMap.get(cfKey);
+    if (cfEntry) {
+      if (tx.type === "INCOME") cfEntry.income += amt;
+      else cfEntry.expense += amt;
     }
+
+    // Category spending (expenses only)
+    if (tx.type === "EXPENSE") {
+      const catName = tx.category.name;
+      catMap.set(catName, (catMap.get(catName) ?? 0) + amt);
+    }
+
+    // Cumulative balance
+    const dateKey = txDate.toISOString().split("T")[0];
+    if (tx.type === "INCOME") runningBalance += amt;
+    else runningBalance -= amt;
+    balanceMap.set(dateKey, runningBalance);
   }
 
   const cashFlow: MonthlyCashFlow[] = Array.from(cashFlowMap.entries()).map(
     ([month, data]) => ({ month, income: data.income, expense: data.expense }),
   );
-
-  // ── Category Spending: group expenses by category ──────────
-  const expensesByCategory = await prisma.transaction.findMany({
-    where: { ...where, type: "EXPENSE" },
-    select: { amount: true, category: { select: { name: true } } },
-  });
-
-  const catMap = new Map<string, number>();
-  for (const tx of expensesByCategory) {
-    const name = tx.category.name;
-    catMap.set(name, (catMap.get(name) ?? 0) + tx.amount);
-  }
 
   const totalCatSpending = Array.from(catMap.values()).reduce(
     (s, v) => s + v,
@@ -162,28 +170,15 @@ export async function getStatistics(
     }))
     .sort((a, b) => b.amount - a.amount);
 
-  // ── Cumulative Balance: running total over time ────────────
-  const allTxSorted = [...transactions].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
-
-  let runningBalance = 0;
-  const balanceMap = new Map<string, number>();
-
-  for (const tx of allTxSorted) {
-    const dateKey = new Date(tx.date).toISOString().split("T")[0];
-    if (tx.type === "INCOME") runningBalance += tx.amount;
-    else runningBalance -= tx.amount;
-    balanceMap.set(dateKey, runningBalance);
-  }
+  const dateFormatter = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+  });
 
   const cumulativeBalance: CumulativeBalance[] = Array.from(
     balanceMap.entries(),
   ).map(([date, balance]) => ({
-    date: new Intl.DateTimeFormat("id-ID", {
-      day: "numeric",
-      month: "short",
-    }).format(new Date(date)),
+    date: dateFormatter.format(new Date(date)),
     balance,
   }));
 

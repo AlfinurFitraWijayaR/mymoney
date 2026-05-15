@@ -114,7 +114,7 @@ export function GoalFormFields({
                 }`}
               >
                 <Image
-                  src={`/${cat.icon}`}
+                  src={`/targets/${cat.icon}`}
                   alt={cat.label}
                   width={20}
                   height={20}

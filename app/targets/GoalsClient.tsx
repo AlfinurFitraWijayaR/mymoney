@@ -235,6 +235,21 @@ export default function GoalsClient({
     const value = e.target.value.replace(/\./g, "");
     if (/^\d*$/.test(value)) {
       setAmount(value);
+
+      // Auto wallet switcher logic:
+      // If action is 'setor' and current wallet balance is insufficient,
+      // automatically switch to the first wallet that has enough balance.
+      if (balanceAction === "setor") {
+        const numAmount = Number(value);
+        const selectedWal = displayWallets.find((w) => w.id === walletId);
+
+        if (selectedWal && numAmount > selectedWal.balance) {
+          const betterWal = displayWallets.find((w) => w.balance >= numAmount);
+          if (betterWal) {
+            setWalletId(betterWal.id);
+          }
+        }
+      }
     }
   };
 
@@ -253,6 +268,7 @@ export default function GoalsClient({
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
+              setAmount("");
               setError(null);
               setSelectedCategory(CATEGORIES[0]);
               setCreateOpen(true);
@@ -319,7 +335,7 @@ export default function GoalsClient({
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-surface-50 to-surface-100 flex items-center justify-center flex-shrink-0 shadow-sm text-xl">
                       <Image
-                        src={"/" + goal.icon}
+                        src={"/targets/" + goal.icon}
                         width={25}
                         height={25}
                         alt={goal.title}
@@ -410,6 +426,7 @@ export default function GoalsClient({
                       {/* setor saldo */}
                       <button
                         onClick={() => {
+                          setAmount("");
                           setError(null);
                           setBalanceTarget(goal);
                           setBalanceAction("setor");
@@ -440,6 +457,7 @@ export default function GoalsClient({
                       {/* tarik saldo */}
                       <button
                         onClick={() => {
+                          setAmount("");
                           setError(null);
                           setBalanceTarget(goal);
                           setBalanceAction("tarik");

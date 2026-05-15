@@ -1,24 +1,65 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from "recharts";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { getStatistics, type StatisticsData } from "@/lib/actions/statistics";
 import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
+
+// Lazy-load heavy chart components to reduce initial bundle size
+const LazyBarChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.BarChart })),
+  { ssr: false }
+);
+const LazyBar = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Bar })),
+  { ssr: false }
+);
+const LazyXAxis = dynamic(
+  () => import("recharts").then((m) => ({ default: m.XAxis })),
+  { ssr: false }
+);
+const LazyYAxis = dynamic(
+  () => import("recharts").then((m) => ({ default: m.YAxis })),
+  { ssr: false }
+);
+const LazyCartesianGrid = dynamic(
+  () => import("recharts").then((m) => ({ default: m.CartesianGrid })),
+  { ssr: false }
+);
+const LazyTooltip = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Tooltip })),
+  { ssr: false }
+);
+const LazyLegend = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Legend })),
+  { ssr: false }
+);
+const LazyResponsiveContainer = dynamic(
+  () => import("recharts").then((m) => ({ default: m.ResponsiveContainer })),
+  { ssr: false }
+);
+const LazyPieChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.PieChart })),
+  { ssr: false }
+);
+const LazyPie = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Pie })),
+  { ssr: false }
+);
+const LazyCell = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Cell })),
+  { ssr: false }
+);
+const LazyAreaChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.AreaChart })),
+  { ssr: false }
+);
+const LazyArea = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Area })),
+  { ssr: false }
+);
+
 
 const INCOME_COLOR = "#10b981"; // emerald-500
 const EXPENSE_COLOR = "#f43f5e"; // rose-500
@@ -301,20 +342,20 @@ export default function StatisticsClient() {
                 Arus Kas {mode === "monthly" ? "Bulanan" : "Tahunan"}
               </h2>
               <div className="h-72 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data!.cashFlow} barCategoryGap="20%">
-                    <CartesianGrid
+                <LazyResponsiveContainer width="100%" height="100%">
+                  <LazyBarChart data={data!.cashFlow} barCategoryGap="20%">
+                    <LazyCartesianGrid
                       strokeDasharray="3 3"
                       stroke="#e4ece8"
                       vertical={false}
                     />
-                    <XAxis
+                    <LazyXAxis
                       dataKey="month"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#6e8f85", fontSize: 11 }}
                     />
-                    <YAxis
+                    <LazyYAxis
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#6e8f85", fontSize: 11 }}
@@ -327,26 +368,26 @@ export default function StatisticsClient() {
                       }
                       width={50}
                     />
-                    <Tooltip content={<CurrencyTooltip />} />
-                    <Legend
+                    <LazyTooltip content={<CurrencyTooltip />} />
+                    <LazyLegend
                       iconType="circle"
                       iconSize={8}
                       wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
                     />
-                    <Bar
+                    <LazyBar
                       dataKey="income"
                       name="Pemasukan"
                       fill={INCOME_COLOR}
                       radius={[4, 4, 0, 0]}
                     />
-                    <Bar
+                    <LazyBar
                       dataKey="expense"
                       name="Pengeluaran"
                       fill={EXPENSE_COLOR}
                       radius={[4, 4, 0, 0]}
                     />
-                  </BarChart>
-                </ResponsiveContainer>
+                  </LazyBarChart>
+                </LazyResponsiveContainer>
               </div>
             </div>
           </div>
@@ -373,9 +414,9 @@ export default function StatisticsClient() {
                         Rp {formatCurrency(data!.summary.totalExpense)}
                       </span>
                     </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
+                    <LazyResponsiveContainer width="100%" height="100%">
+                      <LazyPieChart>
+                        <LazyPie
                           data={data!.categorySpending}
                           cx="50%"
                           cy="50%"
@@ -387,13 +428,13 @@ export default function StatisticsClient() {
                           strokeWidth={0}
                         >
                           {data!.categorySpending.map((_, i) => (
-                            <Cell
+                            <LazyCell
                               key={i}
                               fill={DONUT_COLORS[i % DONUT_COLORS.length]}
                             />
                           ))}
-                        </Pie>
-                        <Tooltip
+                        </LazyPie>
+                        <LazyTooltip
                           formatter={(value: any) => [
                             `Rp ${formatCurrency(Number(value) || 0)}`,
                             "",
@@ -405,8 +446,8 @@ export default function StatisticsClient() {
                             fontSize: 12,
                           }}
                         />
-                      </PieChart>
-                    </ResponsiveContainer>
+                      </LazyPieChart>
+                    </LazyResponsiveContainer>
                   </div>
                   {/* Legend */}
                   <div className="flex-1 space-y-2 w-full">
@@ -455,8 +496,8 @@ export default function StatisticsClient() {
                 </p>
               ) : (
                 <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data!.cumulativeBalance}>
+                  <LazyResponsiveContainer width="100%" height="100%">
+                    <LazyAreaChart data={data!.cumulativeBalance}>
                       <defs>
                         <linearGradient
                           id="balanceGrad"
@@ -477,18 +518,18 @@ export default function StatisticsClient() {
                           />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid
+                      <LazyCartesianGrid
                         strokeDasharray="3 3"
                         stroke="#e4ece8"
                         vertical={false}
                       />
-                      <XAxis
+                      <LazyXAxis
                         dataKey="date"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: "#6e8f85", fontSize: 10 }}
                       />
-                      <YAxis
+                      <LazyYAxis
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: "#6e8f85", fontSize: 10 }}
@@ -501,8 +542,8 @@ export default function StatisticsClient() {
                         }
                         width={45}
                       />
-                      <Tooltip content={<CurrencyTooltip />} />
-                      <Area
+                      <LazyTooltip content={<CurrencyTooltip />} />
+                      <LazyArea
                         type="monotone"
                         dataKey="balance"
                         name="Saldo"
@@ -512,8 +553,8 @@ export default function StatisticsClient() {
                         dot={false}
                         activeDot={{ r: 5, strokeWidth: 2, fill: "#fff" }}
                       />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                    </LazyAreaChart>
+                  </LazyResponsiveContainer>
                 </div>
               )}
             </div>

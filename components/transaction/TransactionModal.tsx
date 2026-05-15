@@ -101,7 +101,15 @@ export function TransactionCreateModal({
           <button
             type="submit"
             form="create-tx-form"
-            disabled={loading || wallets.length === 0}
+            disabled={
+              loading ||
+              wallets.length === 0 ||
+              !form.amount ||
+              Number(form.amount) <= 0 ||
+              (form.type === "EXPENSE" &&
+                Number(form.amount) >
+                  (wallets.find((w) => w.id === form.walletId)?.balance || 0))
+            }
             className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 text-white rounded-2xl font-semibold text-base shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
           >
             {loading ? "Menyimpan…" : "Simpan Transaksi"}
@@ -203,7 +211,16 @@ export function TransactionEditModal({
               <button
                 type="submit"
                 form="edit-tx-form"
-                disabled={loading || wallets.length === 0}
+                disabled={
+                  loading ||
+                  wallets.length === 0 ||
+                  !form.amount ||
+                  Number(form.amount) <= 0 ||
+                  (form.type === "EXPENSE" &&
+                    Number(form.amount) >
+                      (wallets.find((w) => w.id === form.walletId)?.balance ||
+                        0))
+                }
                 className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 text-white rounded-2xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
               >
                 {loading ? "Menyimpan…" : "Simpan Perubahan"}

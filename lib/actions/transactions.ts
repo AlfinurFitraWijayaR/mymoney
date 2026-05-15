@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { TransactionSchema, UpdateTransactionSchema } from "@/lib/validations";
 
-export async function getTransactions(month?: string) {
+/**
+ * Fetch transactions for a given month with only the fields needed.
+ * Accepts optional `limit` to avoid over-fetching (e.g. dashboard only needs 3).
+ */
+export async function getTransactions(month?: string, limit?: number) {
   const session = await requireAuth();
 
   const where: Record<string, any> = { tenant_id: session.tenantId };
@@ -19,8 +23,27 @@ export async function getTransactions(month?: string) {
 
   const transactions = await prisma.transaction.findMany({
     where,
-    include: { category: true, wallet: true },
+    select: {
+      id: true,
+      amount: true,
+      type: true,
+      description: true,
+      date: true,
+      tenant_id: true,
+      category_id: true,
+      wallet_id: true,
+      goal_id: true,
+      created_at: true,
+      updated_at: true,
+      category: {
+        select: { id: true, name: true, type: true, svg_code: true },
+      },
+      wallet: {
+        select: { id: true, name: true, type: true, balance: true, tenant_id: true, created_at: true, updated_at: true },
+      },
+    },
     orderBy: [{ created_at: "desc" }],
+    ...(limit ? { take: limit } : {}),
   });
 
   return transactions.map((t) => ({
@@ -38,6 +61,9 @@ export async function getTransactions(month?: string) {
   }));
 }
 
+/**
+ * Optimized: Use a single groupBy query instead of two separate aggregate queries.
+ */
 export async function getDashboardStats(month?: string) {
   const session = await requireAuth();
   const where: Record<string, any> = { tenant_id: session.tenantId };
@@ -49,19 +75,19 @@ export async function getDashboardStats(month?: string) {
     where.date = { gte: start, lte: end };
   }
 
-  const [income, expense] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: { ...where, type: "INCOME" },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { ...where, type: "EXPENSE" },
-      _sum: { amount: true },
-    }),
-  ]);
+  // Single query with groupBy instead of 2 separate aggregate queries
+  const grouped = await prisma.transaction.groupBy({
+    by: ["type"],
+    where,
+    _sum: { amount: true },
+  });
 
-  const totalIncome = Number(income._sum.amount ?? 0);
-  const totalExpense = Number(expense._sum.amount ?? 0);
+  const totalIncome = Number(
+    grouped.find((g) => g.type === "INCOME")?._sum.amount ?? 0
+  );
+  const totalExpense = Number(
+    grouped.find((g) => g.type === "EXPENSE")?._sum.amount ?? 0
+  );
 
   return {
     totalIncome,

@@ -269,7 +269,7 @@ export function GoalUpdateModal({
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
                 <div className="flex items-center gap-3 mb-2">
                   <Image
-                    src={`/${balanceTarget.icon}`}
+                    src={`/targets/${balanceTarget.icon}`}
                     width={44}
                     height={44}
                     alt={balanceTarget.title}
@@ -325,7 +325,7 @@ export function GoalUpdateModal({
                       }`}
                     >
                       <Image
-                        src={`/${wal.name.toLowerCase()}.svg`}
+                        src={`/wallet/${wal.name.toLowerCase()}.svg`}
                         width={16}
                         height={16}
                         alt={wal.name}

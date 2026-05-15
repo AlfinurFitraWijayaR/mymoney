@@ -9,6 +9,7 @@ export interface Goal {
   category: string;
   icon: string;
   deadline: string | Date;
+  created_at: string;
   status: "ACTIVE" | "COMPLETED" | "CANCELLED";
 }
 
@@ -106,7 +107,7 @@ export function GoalFormFields({
                 key={cat.value}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`flex items-center gap-3 justify-center p-3 rounded-2xl border transition-all ${
+                className={`flex items-center gap-2 justify-center p-3 rounded-2xl border transition-all ${
                   isSelected
                     ? "border-blue-600 bg-blue-50 text-blue-700"
                     : "border-slate-200 bg-white text-zinc-600 hover:border-slate-300"

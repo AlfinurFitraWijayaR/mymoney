@@ -64,7 +64,7 @@ export function GoalInsertModal({
         </div>
 
         {/* Form */}
-        <div className="px-6 pb-6 pt-6 overflow-y-auto max-h-[70vh]">
+        <div className="px-6 pb-2 pt-2 overflow-y-auto max-h-[70vh]">
           <form
             id="create-goal-form"
             onSubmit={onSubmit}
@@ -377,13 +377,15 @@ export function GoalUpdateModal({
                   name="type"
                   value={balanceAction || "setor"}
                 />
-                {balanceAction === "tarik" && balanceTarget && Number(amount) > balanceTarget.current_amount && (
-                  <div className="absolute -top-2 -right-2 z-10">
-                    <span className="bg-rose-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                      MELEBIHI SALDO
-                    </span>
-                  </div>
-                )}
+                {balanceAction === "tarik" &&
+                  balanceTarget &&
+                  Number(amount) > balanceTarget.current_amount && (
+                    <div className="absolute -top-2 -right-2 z-10">
+                      <span className="bg-rose-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                        MELEBIHI SALDO
+                      </span>
+                    </div>
+                  )}
               </div>
             </div>
 

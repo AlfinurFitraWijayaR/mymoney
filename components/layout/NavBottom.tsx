@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { createTransaction } from "@/lib/actions/transactions";
-import { getCategories, createCategory } from "@/lib/actions/categories";
+import { getCategories } from "@/lib/actions/categories";
 import { getWallets } from "@/lib/actions/wallets";
-import Image from "next/image";
+import { TransactionCreateModal } from "../transaction/TransactionModal";
 
 interface SidebarProps {
   role: Role;
@@ -173,64 +173,75 @@ const navItems: NavItem[] = [
   },
 ];
 
+const emptyForm = {
+  amount: "",
+  type: "INCOME" as "INCOME" | "EXPENSE",
+  categoryId: "",
+  walletId: "",
+  description: "",
+  date: new Date().toISOString().split("T")[0],
+};
+
 export function NavBottom({ role }: SidebarProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dbCategories, setDbCategories] = useState<
-    { id: string; name: string; type: "INCOME" | "EXPENSE"; svg_code: string }[]
-  >([]);
-  const [dbWallets, setDbWallets] = useState<
-    {
-      id: string;
-      name: string;
-      type: "CASH" | "BANK" | "EWALLET";
-      balance: number;
-    }[]
-  >([]);
+  const [form, setForm] = useState(emptyForm);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [dbWallets, setDbWallets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isModalOpen) {
-      getCategories().then((res: any) => setDbCategories(res));
-      getWallets().then((res: any) => setDbWallets(res));
+      setLoading(true);
+      Promise.all([getCategories(), getWallets()]).then(([cats, wals]) => {
+        setDbCategories(cats as any);
+        setDbWallets(wals as any);
+        setForm((prev) => ({
+          ...prev,
+          categoryId:
+            prev.categoryId ||
+            (cats as any).find((c: any) => c.type === prev.type)?.id ||
+            "",
+          walletId: prev.walletId || (wals as any)[0]?.id || "",
+        }));
+        setLoading(false);
+      });
     }
   }, [isModalOpen]);
 
-  async function handleQuickSubmit(data: any) {
-    try {
-      let categoryId = dbCategories.find(
-        (c) => c.name.toLowerCase() === data.category.toLowerCase(),
-      )?.id;
-
-      if (!categoryId) {
-        const formData = new FormData();
-        formData.append("name", data.category);
-        const res = await createCategory(formData);
-        if (res.success) {
-          const updatedCats = await getCategories();
-          setDbCategories(updatedCats as any);
-          categoryId = (updatedCats as any).find(
-            (c: any) => c.name.toLowerCase() === data.category.toLowerCase(),
-          )?.id;
-        }
-      }
-
-      if (categoryId) {
-        const formData = new FormData();
-        formData.append("amount", data.amount.toString());
-        formData.append("type", data.type);
-        formData.append("categoryId", categoryId);
-        formData.append("walletId", data.walletId);
-        formData.append("description", data.note || "");
-        formData.append("date", new Date().toISOString().split("T")[0]);
-
-        const res = await createTransaction(formData);
-        if (res.success) {
-          setIsModalOpen(false);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to create transaction:", error);
+  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const result = await createTransaction(fd);
+    setLoading(false);
+    if (result?.error) {
+      setError(
+        typeof result.error === "string"
+          ? result.error
+          : JSON.stringify(result.error),
+      );
+      return;
     }
+    setIsModalOpen(false);
+    setForm(emptyForm);
   }
+
+  const openCreate = () => {
+    setForm({
+      ...emptyForm,
+      categoryId: dbCategories.find((c) => c.type === "INCOME")?.id ?? "",
+      walletId: dbWallets[0]?.id ?? "",
+    });
+    setError(null);
+    setIsModalOpen(true);
+  };
 
   const visibleItems = navItems.filter((item) => {
     if (item.adminOnly) return role === "ADMIN";
@@ -251,7 +262,7 @@ export function NavBottom({ role }: SidebarProps) {
 
         <div className="relative w-16 flex justify-center items-center">
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openCreate}
             className="absolute -translate-y-5 w-[76px] h-[76px] bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-transform active:scale-95 z-20 border-[6px] border-white"
           >
             <svg
@@ -275,12 +286,19 @@ export function NavBottom({ role }: SidebarProps) {
         ))}
       </nav>
 
-      {isModalOpen && (
-        <QuickEntryModal
-          categories={dbCategories}
-          wallets={dbWallets}
+      {mounted && (
+        <TransactionCreateModal
+          open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSubmit={handleQuickSubmit}
+          form={form}
+          setForm={setForm}
+          categories={dbCategories.filter(
+            (cat) => cat.name !== "Target Sasaran",
+          )}
+          wallets={dbWallets}
+          onSubmit={handleCreate}
+          loading={loading}
+          error={error}
         />
       )}
     </>
@@ -302,302 +320,5 @@ function NavItem({ href, label, icon }: NavItem) {
       {icon}
       <span className="text-[10px] font-medium">{label}</span>
     </Link>
-  );
-}
-
-function QuickEntryModal({
-  onClose,
-  onSubmit,
-  categories,
-  wallets,
-}: {
-  onClose: () => void;
-  onSubmit: (data: any) => void;
-  categories: { id: string; name: string; type: string; svg_code: string }[];
-  wallets: { id: string; name: string; type?: string; balance: number }[];
-}) {
-  const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
-  const [walletId, setWalletId] = useState("");
-  const [note, setNote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [show, setShow] = useState(false);
-
-  const filteredCategories = categories.filter(
-    (c) => c.type === type && c.name.toLowerCase() !== "target keuangan",
-  );
-
-  const displayWallets = React.useMemo(() => {
-    return wallets && wallets.length > 0
-      ? wallets
-      : [
-          { id: "default-cash", name: "CASH", balance: 0 },
-          { id: "default-ewallet", name: "E-WALLET", balance: 0 },
-          { id: "default-bank", name: "BANK", balance: 0 },
-        ];
-  }, [wallets]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShow(true), 10);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (filteredCategories.length > 0 && !category) {
-      setCategory(filteredCategories[0].name);
-    }
-  }, [filteredCategories, category]);
-
-  useEffect(() => {
-    if (displayWallets.length > 0 && !walletId) {
-      setWalletId(displayWallets[0].id);
-    }
-  }, [displayWallets, walletId]);
-
-  const handleClose = () => {
-    setShow(false);
-    setTimeout(onClose, 300);
-  };
-
-  const handleTypeChange = (newType: "INCOME" | "EXPENSE") => {
-    setType(newType);
-    const firstCat = categories.find((c) => c.type === newType);
-    setCategory(firstCat ? firstCat.name : "");
-  };
-
-  const formatDisplay = (val: string) => {
-    if (!val) return "";
-    return val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\./g, "");
-    if (/^\d*$/.test(value)) {
-      setAmount(value);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!amount || isNaN(Number(amount)) || !walletId || isSubmitting) return;
-
-    if (type === "EXPENSE") {
-      const selectedWal = displayWallets.find((w) => w.id === walletId);
-      if (selectedWal && Number(amount) > selectedWal.balance) {
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    await onSubmit({
-      type,
-      amount: parseFloat(amount),
-      category,
-      walletId,
-      note,
-    });
-    setIsSubmitting(false);
-  };
-
-  return (
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ease-out",
-        show ? "opacity-100" : "opacity-0",
-      )}
-    >
-      <div className="fixed inset-0" onClick={handleClose} />
-      <div
-        className={cn(
-          "bg-white w-full max-w-lg rounded-t-3xl shadow-2xl flex flex-col transition-transform duration-300 ease-out relative z-10",
-          show ? "translate-y-0" : "translate-y-full",
-        )}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-zinc-800">Tambah Transaksi</h2>
-          <button
-            onClick={handleClose}
-            className="p-2 rounded-full text-zinc-500 hover:text-zinc-800"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.8}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 6l12 12M6 18L18 6"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Form Main */}
-        <div className="px-6 pb-6 overflow-y-auto max-h-[70vh] ">
-          <form
-            id="quick-entry-form"
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
-            {/* Type Toggle */}
-            <div className="flex p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => handleTypeChange("INCOME")}
-                className={`flex-1 py-3 text-sm font-semibold rounded-lg transition-all ${type === "INCOME" ? "bg-white text-emerald-600 shadow-sm" : "text-zinc-500"}`}
-              >
-                Pemasukan
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTypeChange("EXPENSE")}
-                className={`flex-1 py-3 text-sm font-semibold rounded-lg transition-all ${type === "EXPENSE" ? "bg-white text-rose-600 shadow-sm" : "text-zinc-500"}`}
-              >
-                Pengeluaran
-              </button>
-            </div>
-
-            {/* Nominal Input */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Nominal
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-zinc-400">
-                  Rp
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatDisplay(amount)}
-                  onChange={handleAmountChange}
-                  placeholder="0"
-                  required
-                  className="w-full pl-12 pr-4 py-4 text-xl font-bold text-zinc-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Wallets Select */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Pilih Dompet
-              </label>
-              <div className="grid grid-cols-3">
-                {displayWallets.map((wal) => {
-                  const isSelected = walletId === wal.id;
-                  const isInsufficient =
-                    type === "EXPENSE" && Number(amount) > Number(wal.balance);
-
-                  return (
-                    <button
-                      key={wal.id}
-                      type="button"
-                      disabled={isInsufficient}
-                      onClick={() => setWalletId(wal.id)}
-                      className={`relative flex gap-1 items-center justify-center p-3 rounded-2xl border transition-all ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                          : isInsufficient
-                            ? "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed"
-                            : "border-slate-200 bg-white font-normal text-zinc-500 hover:border-slate-300"
-                      }`}
-                    >
-                      <Image
-                        src={`/${wal.name.toLowerCase()}.svg`}
-                        width={16}
-                        height={16}
-                        alt={wal.name}
-                        className={
-                          isSelected
-                            ? ""
-                            : isInsufficient
-                              ? "grayscale opacity-30"
-                              : "grayscale opacity-80"
-                        }
-                      />
-                      <span className="text-xs font-medium">
-                        {wal.name.toUpperCase()}
-                      </span>
-                      {isInsufficient && (
-                        <div className="absolute -top-1 -right-1">
-                          <span className="bg-rose-500 text-white text-[7px] font-semibold px-1.5 py-0.5 rounded-full shadow-sm">
-                            SALDO KURANG
-                          </span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Category Select */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Kategori
-              </label>
-              <div className="grid grid-cols-3">
-                {filteredCategories.map((cat) => {
-                  const isSelected = category === cat.name;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setCategory(cat.name)}
-                      className={`flex items-center gap-1.5 justify-center p-3 rounded-2xl border transition-all ${isSelected ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-zinc-600 hover:border-slate-300"}`}
-                    >
-                      <span
-                        className="w-5 h-5 flex items-center justify-center"
-                        dangerouslySetInnerHTML={{ __html: cat.svg_code }}
-                      />
-                      <span className="text-xs font-medium">{cat.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Note Input */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Catatan (Opsional)
-              </label>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="cth: Ngopi bareng tim"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              />
-            </div>
-          </form>
-        </div>
-
-        <div className="px-6 pb-6 border-t border-slate-100 bg-white">
-          <button
-            type="submit"
-            form="quick-entry-form"
-            disabled={
-              isSubmitting ||
-              (type === "EXPENSE" &&
-                walletId !== "" &&
-                Number(amount) >
-                  Number(
-                    displayWallets.find((w) => w.id === walletId)?.balance || 0,
-                  ))
-            }
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 text-white rounded-2xl font-semibold text-base shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
-          >
-            {isSubmitting ? "Menyimpan..." : "Simpan Transaksi"}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

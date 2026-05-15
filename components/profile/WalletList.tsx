@@ -94,7 +94,7 @@ export default function WalletList({ wallets }: WalletListProps) {
               }`}
             >
               <Image
-                src={`/${wallet.name}.svg`}
+                src={`/${wallet.name.toLowerCase()}.svg`}
                 width={35}
                 height={35}
                 alt={wallet.name.toLowerCase()}

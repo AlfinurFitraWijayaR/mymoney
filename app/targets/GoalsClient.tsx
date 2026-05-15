@@ -36,19 +36,39 @@ function getStatusBadge(goal: Goal) {
       label: "Tercapai",
       color: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     };
-  const now = new Date();
-  const target = new Date(goal.deadline);
-  const diff = target.getTime() - now.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  const progress =
-    goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0;
-  if (diff <= 0)
-    return { label: "Terlambat", color: "bg-red-50 text-red-700 ring-red-200" };
-  if (days <= 30 && progress < 0.7)
+
+  const WARNING_TOLERANCE = 0.15;
+  const now = Date.now();
+  const startDate = new Date(goal.created_at).getTime();
+  const deadline = new Date(goal.deadline).getTime();
+  const totalDuration = deadline - startDate;
+  const elapsedDuration = now - startDate;
+  const remainingDuration = deadline - now;
+
+  const actualProgress =
+    goal.target_amount > 0
+      ? Math.min(goal.current_amount / goal.target_amount, 1)
+      : 0;
+
+  if (remainingDuration <= 0) {
+    return {
+      label: "Terlambat",
+      color: "bg-red-50 text-red-700 ring-red-200",
+    };
+  }
+
+  const expectedProgress =
+    totalDuration > 0 ? Math.min(elapsedDuration / totalDuration, 1) : 0;
+
+  const isLagging = actualProgress < expectedProgress - WARNING_TOLERANCE;
+
+  if (isLagging) {
     return {
       label: "Tertinggal",
       color: "bg-amber-50 text-amber-700 ring-amber-200",
     };
+  }
+
   return {
     label: "Sesuai Target",
     color: "bg-blue-50 text-blue-700 ring-blue-200",

@@ -116,27 +116,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <p className="text-[13px] md:text-sm font-semibold text-zinc-600 pr-4">
                 {
                   [
-                    '"Harga kecil yang dibayar untuk disiplin jauh lebih murah daripada harga besar yang dibayar untuk penyesalan." — Warren Buffett',
-                    '"Jangan menabung dari sisa pengeluaran, tetapi belanjakan dari sisa tabungan." — Warren Buffett',
+                    '"Pencatatan yang rapi adalah langkah awal menuju kebebasan finansial yang terukur." — Peter Drucker',
+                    '"Jangan menabung apa yang tersisa setelah belanja, tapi belanjakan apa yang tersisa setelah menabung." — Warren Buffett',
+                    '"Disiplin finansial adalah bentuk tertinggi dari rasa cinta pada diri sendiri di masa depan." — Dave Ramsey',
+                    '"Setiap angka yang kamu catat hari ini adalah peta menuju impianmu besok." — Benjamin Franklin',
+                    '"Bukan seberapa banyak uang yang kamu hasilkan, tapi seberapa banyak yang kamu simpan." — Robert Kiyosaki',
+                    '"Kebiasaan mengatur uang jauh lebih penting daripada jumlah uang yang kamu miliki." — T. Harv Eker',
+                    '"Kontrol penuh atas pengeluaran adalah kunci ketenangan pikiran setiap bulan." — Suze Orman',
                     '"Investasi terbaik yang bisa kamu lakukan adalah investasi pada dirimu sendiri." — Warren Buffett',
-                    '"Orang kaya memiliki televisi kecil dan perpustakaan besar, orang miskin memiliki perpustakaan kecil dan televisi besar." — Zig Ziglar',
-                    '"Bukan berapa banyak uang yang kamu hasilkan, tapi berapa banyak yang kamu simpan." — Robert Kiyosaki',
-                    '"Kebiasaan sederhana dalam mengatur uang akan menentukan masa depanmu." — Dave Ramsey',
-                    '"Tujuan bukan sekadar menghasilkan uang, tetapi menciptakan kebebasan." — Tony Robbins',
-                    '"Kekayaan sejati adalah kemampuan untuk hidup sesuai keinginanmu." — Morgan Housel',
-                    '"Disiplin finansial lebih penting daripada kecerdasan finansial." — Dave Ramsey',
-                    '"Uang hanyalah alat. Ia akan membawamu ke mana pun kamu mau, tetapi tidak akan menggantikan dirimu sebagai pengemudi." — Ayn Rand',
-                    '"Jangan pernah bergantung pada satu sumber penghasilan." — Warren Buffett',
-                    '"Orang sukses membuat uang bekerja untuk mereka." — Robert Kiyosaki',
-                    '"Kebebasan finansial tersedia bagi mereka yang mau mempelajarinya." — Robert Kiyosaki',
-                    '"Jika kamu membeli hal yang tidak dibutuhkan, suatu hari kamu akan menjual hal yang kamu butuhkan." — Warren Buffett',
-                    '"Kesabaran adalah kunci utama dalam membangun kekayaan." — Charlie Munger',
-                    '"Keamanan finansial bukan tentang seberapa besar penghasilanmu, tetapi seberapa baik kamu mengelolanya." — Suze Orman',
-                    '"Banyak orang gagal bukan karena kurang uang, tetapi karena kurang perencanaan." — Dave Ramsey',
-                    '"Waktu adalah teman terbaik investasi yang baik." — Warren Buffett',
-                    '"Kekayaan dibangun dari keputusan kecil yang konsisten." — Morgan Housel',
-                    '"Kesuksesan finansial dimulai ketika kamu berhenti hidup hanya untuk terlihat kaya." — Thomas J. Stanley',
-                  ][Math.floor(Math.random() * 10)]
+                    '"Jangan biarkan gaya hidupmu melampaui kemampuan finansialmu yang sebenarnya." — Thomas J. Stanley',
+                    '"Rencana keuangan memberi tahu uangmu ke mana harus pergi, bukan membuatmu bertanya ke mana ia pergi." — Dave Ramsey',
+                    '"Kebebasan finansial dimulai saat kamu berhenti hidup hanya untuk terlihat kaya." — Thomas J. Stanley',
+                    '"Masa depan finansialmu ditentukan oleh apa yang kamu lakukan hari ini, bukan besok." — Robert Kiyosaki',
+                    '"Uang adalah pelayan yang baik, namun tuan yang buruk. Jadilah pengemudi yang bijak." — Francis Bacon',
+                    '"Kesuksesan finansial adalah hasil dari keputusan kecil yang dilakukan secara konsisten." — Morgan Housel',
+                    '"Tabungan adalah napas bagi masa depanmu. Pastikan kamu selalu memberinya ruang." — Elizabeth Warren',
+                    '"Jangan hanya menghitung hari, buatlah hari-harimu berarti dengan pengelolaan uang yang bijak." — Jim Rohn',
+                    '"Satu langkah kecil mencatat transaksi hari ini menjauhkanmu dari kebingungan finansial." — Alfinur (Developer)',
+                    '"Kesehatan finansial sama pentingnya dengan kesehatan fisik. Pantau dengan disiplin." — Suze Orman',
+                    '"Uang hanyalah alat. Ia akan membawamu ke mana pun, tapi tidak akan menggantikanmu sebagai pengemudi." — Ayn Rand',
+                    '"Kekayaan sejati adalah kemampuan untuk hidup sepenuhnya sesuai keinginanmu." — Henry David Thoreau',
+                  ][Math.floor(Math.random() * 20)]
                 }
               </p>
             </div>

@@ -1,5 +1,4 @@
 import { getSession } from "@/lib/auth";
-import { formatCurrency } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth";
 import { getWallets } from "@/lib/actions/wallets";
 import { prisma } from "@/lib/prisma";

@@ -83,7 +83,7 @@ export function TransactionCreateModal({
         </div>
 
         {/* Form Main */}
-        <div className="px-6 pb-6 pt-6 overflow-y-auto max-h-[70vh]">
+        <div className="px-6 pb-2 pt-2 overflow-y-auto max-h-[70vh]">
           <TransactionForm
             formId="create-tx-form"
             form={form}
@@ -174,7 +174,7 @@ export function TransactionEditModal({
         </div>
 
         {/* Form Main */}
-        <div className="px-6 pb-6 pt-6 overflow-y-auto max-h-[70vh]">
+        <div className="px-6 pb-2 pt-2 overflow-y-auto max-h-[70vh]">
           <TransactionForm
             formId="edit-tx-form"
             form={form}

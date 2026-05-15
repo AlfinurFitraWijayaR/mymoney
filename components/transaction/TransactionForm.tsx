@@ -196,7 +196,7 @@ export function TransactionForm({
         <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
           Kategori
         </label>
-        <div className="grid grid-cols-3 gap-0 md:gap-2">
+        <div className="grid grid-cols-3 gap-1 md:gap-2">
           {filteredCategories.map((cat) => {
             const isSelected = form.categoryId === cat.id;
             return (
@@ -205,7 +205,7 @@ export function TransactionForm({
                 type="button"
                 disabled={readOnly}
                 onClick={() => setForm({ ...form, categoryId: cat.id })}
-                className={`flex items-center gap-1.5 justify-center p-3 rounded-2xl border transition-all ${
+                className={`flex items-center gap-0.5 justify-center p-3 rounded-2xl border transition-all ${
                   isSelected
                     ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
                     : readOnly

@@ -18,6 +18,10 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     getWallets(),
   ]);
 
+  console.log({ transactions });
+  console.log({ categories });
+  console.log({ wallets });
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <TransactionsClient

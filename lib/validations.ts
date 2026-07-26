@@ -28,7 +28,7 @@ export const ResetPasswordSchema = z.object({
 export const CategorySchema = z.object({
   name: z.string().min(1, "Name wajib diisi").max(100),
   type: z.enum(["INCOME", "EXPENSE"]),
-  svg_code: z.string().min(1, "Icon wajib diisi"),
+  svg_code: z.string().optional(),
 });
 
 export const TransactionSchema = z.object({

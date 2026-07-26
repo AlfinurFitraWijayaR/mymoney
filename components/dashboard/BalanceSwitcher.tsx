@@ -238,7 +238,7 @@ export function BalanceSwitcher({
                 <div className="bg-white/10 backdrop-blur-md p-2.5 md:p-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-lg flex flex-col md:flex-row items-center gap-1.5 md:gap-3 group/stat h-full transition-all active:scale-95">
                   <div className="flex-shrink-0">
                     <Image
-                      src={`/${wallet.name.toLowerCase()}.svg`}
+                      src={`/wallet/${wallet.name.toLowerCase()}.svg`}
                       width={24}
                       height={24}
                       className="md:w-8 md:h-8"

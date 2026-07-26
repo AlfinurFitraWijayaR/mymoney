@@ -13,7 +13,7 @@ interface Category {
   id: string;
   name: string;
   type: "INCOME" | "EXPENSE";
-  svg_code: string;
+  svg_code: string | null;
 }
 
 export default function CategoriesClient({
@@ -307,7 +307,7 @@ export default function CategoriesClient({
             <textarea
               name="svg_code"
               className="input font-mono text-xs"
-              defaultValue={editTarget?.svg_code}
+              defaultValue={editTarget?.svg_code ?? ""}
               required
               rows={3}
             />
